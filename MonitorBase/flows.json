@@ -1,0 +1,1059 @@
+[
+    {
+        "id": "7e9c50ed.2ab67",
+        "type": "subflow",
+        "name": "Group variables in a .csv file",
+        "info": "",
+        "category": "STMicroelectronics",
+        "in": [
+            {
+                "x": 60,
+                "y": 80,
+                "wires": [
+                    {
+                        "id": "c7f149ae.894818"
+                    }
+                ]
+            }
+        ],
+        "out": [
+            {
+                "x": 840,
+                "y": 360,
+                "wires": [
+                    {
+                        "id": "802c75f2.9f7898",
+                        "port": 0
+                    }
+                ]
+            }
+        ],
+        "env": [
+            {
+                "name": "nbVar",
+                "type": "num",
+                "value": "",
+                "ui": {
+                    "icon": "font-awesome/fa-cogs",
+                    "label": {
+                        "en-US": "Number of Variables"
+                    },
+                    "type": "input",
+                    "opts": {
+                        "types": [
+                            "num"
+                        ]
+                    }
+                }
+            },
+            {
+                "name": "delete_time",
+                "type": "bool",
+                "value": "false",
+                "ui": {
+                    "icon": "font-awesome/fa-clock-o",
+                    "label": {
+                        "en-US": "Single Time"
+                    },
+                    "type": "input",
+                    "opts": {
+                        "types": [
+                            "bool"
+                        ]
+                    }
+                }
+            }
+        ],
+        "color": "#3CB4E6",
+        "icon": "node-red/join.svg"
+    },
+    {
+        "id": "7b54efc3.0009e",
+        "type": "function",
+        "z": "7e9c50ed.2ab67",
+        "name": "Associate values with same timestamp",
+        "func": "let i = 0;\nlet j = 0;\nlet n = 0;\nlet msg1; \nlet msgArray = new Array();\nlet nbVar = msg.payload.length;\n\nfor(i = 0; i < nbVar; i++){\n    \n    let underArrayLength = msg.payload[i].length;\n    \n    for(j = 0; j < underArrayLength; j++){\n            \n            for(n = 0; n < nbVar; n++){\n                msg1 = msg.payload[n][j];\n                msgArray.push(msg1);\n            }\n    }\n    msg.payload = msgArray;\n    return msg;\n}",
+        "outputs": 1,
+        "noerr": 0,
+        "initialize": "",
+        "finalize": "",
+        "libs": [],
+        "x": 650,
+        "y": 80,
+        "wires": [
+            [
+                "b3b24fdd.b01b9"
+            ]
+        ]
+    },
+    {
+        "id": "b3b24fdd.b01b9",
+        "type": "split",
+        "z": "7e9c50ed.2ab67",
+        "name": "",
+        "splt": "\\n",
+        "spltType": "str",
+        "arraySplt": "${nbVar}",
+        "arraySpltType": "len",
+        "stream": false,
+        "addname": "",
+        "x": 870,
+        "y": 80,
+        "wires": [
+            [
+                "cf754130.7de2a"
+            ]
+        ]
+    },
+    {
+        "id": "ca91d405.238ea8",
+        "type": "function",
+        "z": "7e9c50ed.2ab67",
+        "name": "Format data",
+        "func": "let output=\"\";\n\nif(typeof msg.payload == 'number') {\n    output = msg.payload;\n    \n}else if(typeof msg.payload == 'string'){\n    output = msg.payload;\n}else{\n    output = msg.payload.x + \";\"+ msg.payload.y;\n}\n\nmsg.payload = output ;\n\nreturn msg;",
+        "outputs": 1,
+        "noerr": 0,
+        "initialize": "",
+        "finalize": "",
+        "libs": [],
+        "x": 790,
+        "y": 200,
+        "wires": [
+            [
+                "802c75f2.9f7898"
+            ]
+        ]
+    },
+    {
+        "id": "802c75f2.9f7898",
+        "type": "join",
+        "z": "7e9c50ed.2ab67",
+        "name": "Join consecutive messages from the number of monitored variables",
+        "mode": "custom",
+        "build": "string",
+        "property": "payload",
+        "propertyType": "msg",
+        "key": "topic",
+        "joiner": ";",
+        "joinerType": "str",
+        "accumulate": false,
+        "timeout": "",
+        "count": "${nbVar}",
+        "reduceRight": false,
+        "reduceExp": "",
+        "reduceInit": "",
+        "reduceInitType": "",
+        "reduceFixup": "",
+        "x": 380,
+        "y": 360,
+        "wires": [
+            []
+        ]
+    },
+    {
+        "id": "c7f149ae.894818",
+        "type": "join",
+        "z": "7e9c50ed.2ab67",
+        "name": "Join [nbVar] consecutives messages",
+        "mode": "custom",
+        "build": "array",
+        "property": "payload",
+        "propertyType": "msg",
+        "key": "topic",
+        "joiner": ";",
+        "joinerType": "str",
+        "accumulate": false,
+        "timeout": "",
+        "count": "${nbVar}",
+        "reduceRight": false,
+        "reduceExp": "",
+        "reduceInit": "",
+        "reduceInitType": "num",
+        "reduceFixup": "",
+        "x": 290,
+        "y": 80,
+        "wires": [
+            [
+                "7b54efc3.0009e"
+            ]
+        ]
+    },
+    {
+        "id": "cf754130.7de2a",
+        "type": "function",
+        "z": "7e9c50ed.2ab67",
+        "name": "Delete duplicate timestamps if user wants",
+        "func": "let i;\nlet delDup = env.get(\"delete_time\");\nlet nbVar = env.get(\"nbVar\");\nlet msgArray = new Array();\n\nif(delDup === false){\n    return msg;\n}else{\n    \n    msgArray.push(msg.payload[0]);\n    \n    for(i=1; i < nbVar; i++){\n        \n        msgArray.push(msg.payload[i].y);\n        \n    }\n    \n    msg.payload = msgArray;\n    return msg;\n    \n}\n\n\n",
+        "outputs": 1,
+        "noerr": 0,
+        "initialize": "",
+        "finalize": "",
+        "libs": [],
+        "x": 260,
+        "y": 200,
+        "wires": [
+            [
+                "91613227.a8eb8"
+            ]
+        ]
+    },
+    {
+        "id": "91613227.a8eb8",
+        "type": "split",
+        "z": "7e9c50ed.2ab67",
+        "name": "",
+        "splt": "\\n",
+        "spltType": "str",
+        "arraySplt": "1",
+        "arraySpltType": "len",
+        "stream": false,
+        "addname": "",
+        "x": 570,
+        "y": 200,
+        "wires": [
+            [
+                "ca91d405.238ea8"
+            ]
+        ]
+    },
+    {
+        "id": "91d68244.047e7",
+        "type": "subflow",
+        "name": "Select .csv variable",
+        "info": "",
+        "category": "STMicroelectronics",
+        "in": [
+            {
+                "x": 220,
+                "y": 120,
+                "wires": [
+                    {
+                        "id": "e9aa15c3.2c15f8"
+                    }
+                ]
+            }
+        ],
+        "out": [
+            {
+                "x": 1180,
+                "y": 120,
+                "wires": [
+                    {
+                        "id": "d287b70e.45b4c8",
+                        "port": 0
+                    }
+                ]
+            }
+        ],
+        "env": [
+            {
+                "name": "varfilter",
+                "type": "str",
+                "value": "",
+                "ui": {
+                    "icon": "font-awesome/fa-cog",
+                    "label": {
+                        "en-US": "Variable name"
+                    },
+                    "type": "input",
+                    "opts": {
+                        "types": [
+                            "str"
+                        ]
+                    }
+                }
+            }
+        ],
+        "meta": {},
+        "color": "#3CB4E6",
+        "icon": "node-red/arrow-in.svg"
+    },
+    {
+        "id": "d287b70e.45b4c8",
+        "type": "change",
+        "z": "91d68244.047e7",
+        "name": "keep only table of duplets",
+        "rules": [
+            {
+                "t": "set",
+                "p": "payload",
+                "pt": "msg",
+                "to": "payload.variabledata",
+                "tot": "msg"
+            }
+        ],
+        "action": "",
+        "property": "",
+        "from": "",
+        "to": "",
+        "reg": false,
+        "x": 950,
+        "y": 120,
+        "wires": [
+            []
+        ]
+    },
+    {
+        "id": "e9aa15c3.2c15f8",
+        "type": "switch",
+        "z": "91d68244.047e7",
+        "name": "filter variable",
+        "property": "payload.variablename",
+        "propertyType": "msg",
+        "rules": [
+            {
+                "t": "eq",
+                "v": "varfilter",
+                "vt": "env"
+            }
+        ],
+        "checkall": "true",
+        "repair": false,
+        "outputs": 1,
+        "x": 390,
+        "y": 120,
+        "wires": [
+            [
+                "c88ffe31.b60d9"
+            ]
+        ]
+    },
+    {
+        "id": "c88ffe31.b60d9",
+        "type": "function",
+        "z": "91d68244.047e7",
+        "name": "define the .csv header ",
+        "func": "if(msg.payload.variabledata[0].y === undefined){\n    msg.payload.variabledata[0].x = 'timestamp' + \"_\" +  msg.payload.variablename;\n    msg.payload.variabledata[0].y = msg.payload.variablename;\n    return msg;\n}else{\n    return msg;\n}\n",
+        "outputs": 1,
+        "noerr": 0,
+        "initialize": "",
+        "finalize": "",
+        "libs": [],
+        "x": 660,
+        "y": 120,
+        "wires": [
+            [
+                "d287b70e.45b4c8"
+            ]
+        ]
+    },
+    {
+        "id": "b724a6a7.177628",
+        "type": "tab",
+        "label": "Create .csv log file",
+        "disabled": false,
+        "info": ""
+    },
+    {
+        "id": "f474eca8.7b351",
+        "type": "ui_chartst",
+        "z": "b724a6a7.177628",
+        "group": "b70ff341.369b9",
+        "name": "myChart",
+        "order": 4,
+        "width": 15,
+        "height": 9,
+        "chartType": "line",
+        "curveType": "linear",
+        "duration": "10",
+        "ymin": "",
+        "ymax": "",
+        "x": 600,
+        "y": 580,
+        "wires": []
+    },
+    {
+        "id": "af306ec4.f0fad",
+        "type": "acquisition out",
+        "z": "b724a6a7.177628",
+        "name": "myProbe_Out",
+        "probeconfig": "e27ff0225fd2c6a4",
+        "x": 1400,
+        "y": 480,
+        "wires": []
+    },
+    {
+        "id": "be311bcb.2d3738",
+        "type": "acquisition in",
+        "z": "b724a6a7.177628",
+        "name": "myProbe_In",
+        "probeconfig": "e27ff0225fd2c6a4",
+        "x": 210,
+        "y": 660,
+        "wires": [
+            [
+                "d42b7c5c.e9b9"
+            ],
+            []
+        ]
+    },
+    {
+        "id": "672c629e.55c89c",
+        "type": "ui_button",
+        "z": "b724a6a7.177628",
+        "name": "",
+        "group": "b70ff341.369b9",
+        "order": 3,
+        "width": 5,
+        "height": 1,
+        "passthru": false,
+        "label": "Clear Graphs",
+        "tooltip": "",
+        "color": "",
+        "bgcolor": "",
+        "icon": "",
+        "payload": "",
+        "payloadType": "str",
+        "topic": "clear",
+        "topicType": "str",
+        "x": 390,
+        "y": 580,
+        "wires": [
+            [
+                "f474eca8.7b351"
+            ]
+        ]
+    },
+    {
+        "id": "fddfae1a.63681",
+        "type": "ui_button",
+        "z": "b724a6a7.177628",
+        "name": "",
+        "group": "b70ff341.369b9",
+        "order": 1,
+        "width": 5,
+        "height": 1,
+        "passthru": false,
+        "label": "START Acquisition",
+        "tooltip": "",
+        "color": "",
+        "bgcolor": "",
+        "icon": "",
+        "payload": "",
+        "payloadType": "str",
+        "topic": "start",
+        "topicType": "str",
+        "x": 150,
+        "y": 100,
+        "wires": [
+            [
+                "2d9e3241.b547fe"
+            ]
+        ]
+    },
+    {
+        "id": "7aa5d3b.ac0f92c",
+        "type": "ui_button",
+        "z": "b724a6a7.177628",
+        "name": "",
+        "group": "b70ff341.369b9",
+        "order": 2,
+        "width": 5,
+        "height": 1,
+        "passthru": true,
+        "label": "STOP Acquisition",
+        "tooltip": "",
+        "color": "",
+        "bgcolor": "",
+        "icon": "",
+        "payload": "",
+        "payloadType": "str",
+        "topic": "stop",
+        "topicType": "str",
+        "x": 150,
+        "y": 180,
+        "wires": [
+            [
+                "9767ad34.f46fd"
+            ]
+        ]
+    },
+    {
+        "id": "d42b7c5c.e9b9",
+        "type": "processing",
+        "z": "b724a6a7.177628",
+        "groupname": "MyVariables",
+        "groupid": "9767ad34.f46fd",
+        "expressions": [],
+        "statistics": [],
+        "logmode": "no",
+        "logformat": "stcm",
+        "x": 470,
+        "y": 680,
+        "wires": [
+            [
+                "f474eca8.7b351",
+                "fdcd4a27.d79ec8",
+                "c6e46d72.82fc5",
+                "1152e9d2.1992b6",
+                "bbf1b1f5.ab6ee"
+            ],
+            []
+        ]
+    },
+    {
+        "id": "b8f3a432.74d7e8",
+        "type": "file",
+        "z": "b724a6a7.177628",
+        "name": "",
+        "filename": "/Users/michaelalex/Documents/Udemy/DSP4STM32/DSP4STM32WkSpace/MonitorBase/Log_File.csv",
+        "filenameType": "str",
+        "appendNewline": true,
+        "createDir": false,
+        "overwriteFile": "false",
+        "encoding": "none",
+        "x": 1780,
+        "y": 700,
+        "wires": [
+            []
+        ]
+    },
+    {
+        "id": "fdcd4a27.d79ec8",
+        "type": "subflow:91d68244.047e7",
+        "z": "b724a6a7.177628",
+        "name": "Data1",
+        "env": [
+            {
+                "name": "varfilter",
+                "value": "dataOut",
+                "type": "str"
+            }
+        ],
+        "x": 670,
+        "y": 660,
+        "wires": [
+            [
+                "a76ed275.b6203"
+            ]
+        ]
+    },
+    {
+        "id": "c6e46d72.82fc5",
+        "type": "subflow:91d68244.047e7",
+        "z": "b724a6a7.177628",
+        "name": "Data2",
+        "env": [
+            {
+                "name": "varfilter",
+                "value": "sampleOut",
+                "type": "str"
+            }
+        ],
+        "x": 670,
+        "y": 720,
+        "wires": [
+            [
+                "a76ed275.b6203"
+            ]
+        ]
+    },
+    {
+        "id": "3f392198.19ae2e",
+        "type": "subflow:7e9c50ed.2ab67",
+        "z": "b724a6a7.177628",
+        "name": "Group variables in a .csv file",
+        "env": [
+            {
+                "name": "nbVar",
+                "value": "3",
+                "type": "num"
+            },
+            {
+                "name": "delete_time",
+                "value": "true",
+                "type": "bool"
+            }
+        ],
+        "x": 1200,
+        "y": 700,
+        "wires": [
+            [
+                "b8f3a432.74d7e8"
+            ]
+        ]
+    },
+    {
+        "id": "9767ad34.f46fd",
+        "type": "variables",
+        "z": "b724a6a7.177628",
+        "groupname": "MyVariables",
+        "accesspoint": 0,
+        "execonfig": "d7972f68.a26fd",
+        "variablelist": [],
+        "triggerstartmode": "manual",
+        "triggername": "dataIn",
+        "triggerthreshold": "",
+        "frequency": "5000",
+        "frequencyType": "custom",
+        "snapshotheader": "",
+        "mode": "direct",
+        "lastImportedTime": 1735864629205,
+        "openStatus": true,
+        "x": 490,
+        "y": 480,
+        "wires": [
+            [
+                "af306ec4.f0fad"
+            ],
+            []
+        ]
+    },
+    {
+        "id": "c3db2cda.530df",
+        "type": "file in",
+        "z": "b724a6a7.177628",
+        "name": "",
+        "filename": "/Users/michaelalex/Documents/Udemy/DSP4STM32/DSP4STM32WkSpace/MonitorBase/Input_File.csv",
+        "filenameType": "str",
+        "format": "utf8",
+        "chunk": false,
+        "sendError": false,
+        "encoding": "none",
+        "allProps": false,
+        "x": 760,
+        "y": 20,
+        "wires": [
+            [
+                "4582bc4.528b544"
+            ]
+        ]
+    },
+    {
+        "id": "4582bc4.528b544",
+        "type": "csv",
+        "z": "b724a6a7.177628",
+        "name": "Column",
+        "sep": ";",
+        "hdrin": true,
+        "hdrout": "none",
+        "multi": "one",
+        "ret": "\\n",
+        "temp": "",
+        "skip": "0",
+        "strings": true,
+        "include_empty_strings": "",
+        "include_null_values": "",
+        "x": 660,
+        "y": 80,
+        "wires": [
+            [
+                "5087f9d8.213ae8",
+                "8aa305e1.f01038",
+                "27854af4.d53d86"
+            ]
+        ]
+    },
+    {
+        "id": "7fdd345f.22813c",
+        "type": "debug",
+        "z": "b724a6a7.177628",
+        "d": true,
+        "name": "",
+        "active": true,
+        "tosidebar": true,
+        "console": true,
+        "tostatus": false,
+        "complete": "payload",
+        "targetType": "msg",
+        "statusVal": "",
+        "statusType": "auto",
+        "x": 1480,
+        "y": 60,
+        "wires": []
+    },
+    {
+        "id": "8499073d.fdb6c8",
+        "type": "template",
+        "z": "b724a6a7.177628",
+        "name": "write_msg",
+        "field": "payload",
+        "fieldType": "msg",
+        "format": "json",
+        "syntax": "mustache",
+        "template": "{\n    \"variablelist\": [\n        {\n            \"address\": \"0x20000028\",\n            \"type\": 5,\n            \"value\": \"{{payload}}\"\n        }\n        ],\n        \"accesspoint\": 0\n}",
+        "output": "json",
+        "x": 1230,
+        "y": 100,
+        "wires": [
+            [
+                "7cee7e43.ce324",
+                "7fdd345f.22813c"
+            ]
+        ]
+    },
+    {
+        "id": "7cee7e43.ce324",
+        "type": "change",
+        "z": "b724a6a7.177628",
+        "name": "set topic",
+        "rules": [
+            {
+                "t": "set",
+                "p": "topic",
+                "pt": "msg",
+                "to": "write",
+                "tot": "str"
+            }
+        ],
+        "action": "",
+        "property": "",
+        "from": "",
+        "to": "",
+        "reg": false,
+        "x": 1460,
+        "y": 300,
+        "wires": [
+            [
+                "af306ec4.f0fad"
+            ]
+        ]
+    },
+    {
+        "id": "68a79807.54f8b8",
+        "type": "change",
+        "z": "b724a6a7.177628",
+        "name": "filter variable",
+        "rules": [
+            {
+                "t": "set",
+                "p": "payload",
+                "pt": "msg",
+                "to": "$number(payload)",
+                "tot": "jsonata"
+            }
+        ],
+        "action": "",
+        "property": "",
+        "from": "",
+        "to": "",
+        "reg": false,
+        "x": 1070,
+        "y": 80,
+        "wires": [
+            [
+                "8499073d.fdb6c8"
+            ]
+        ]
+    },
+    {
+        "id": "5087f9d8.213ae8",
+        "type": "function",
+        "z": "b724a6a7.177628",
+        "name": "column_sample",
+        "func": "newmsg = {};\nnewmsg.payload = msg.payload.sample;\nreturn newmsg;",
+        "outputs": 1,
+        "noerr": 0,
+        "initialize": "",
+        "finalize": "",
+        "libs": [],
+        "x": 860,
+        "y": 80,
+        "wires": [
+            [
+                "68a79807.54f8b8"
+            ]
+        ]
+    },
+    {
+        "id": "2d9e3241.b547fe",
+        "type": "delay",
+        "z": "b724a6a7.177628",
+        "name": "",
+        "pauseType": "delay",
+        "timeout": "3",
+        "timeoutUnits": "seconds",
+        "rate": "1",
+        "nbRateUnits": "1",
+        "rateUnits": "second",
+        "randomFirst": "1",
+        "randomLast": "5",
+        "randomUnits": "seconds",
+        "drop": false,
+        "outputs": 1,
+        "x": 320,
+        "y": 100,
+        "wires": [
+            [
+                "c3db2cda.530df",
+                "9767ad34.f46fd"
+            ]
+        ]
+    },
+    {
+        "id": "b5c6d9c6.47e198",
+        "type": "debug",
+        "z": "b724a6a7.177628",
+        "d": true,
+        "name": "",
+        "active": true,
+        "tosidebar": true,
+        "console": true,
+        "tostatus": false,
+        "complete": "payload",
+        "targetType": "msg",
+        "statusVal": "",
+        "statusType": "auto",
+        "x": 1200,
+        "y": 240,
+        "wires": []
+    },
+    {
+        "id": "d1eaeafb.723b88",
+        "type": "template",
+        "z": "b724a6a7.177628",
+        "name": "write_msg2",
+        "field": "payload",
+        "fieldType": "msg",
+        "format": "json",
+        "syntax": "mustache",
+        "template": "{\n    \"variablelist\": [\n        {\n            \"address\": \"0x20000030\",\n            \"type\": 9,\n            \"value\": \"{{payload}}\"\n        }\n        ],\n        \"accesspoint\": 0\n}",
+        "output": "json",
+        "x": 1130,
+        "y": 340,
+        "wires": [
+            [
+                "7cee7e43.ce324"
+            ]
+        ]
+    },
+    {
+        "id": "2ba231c.e96a1ce",
+        "type": "change",
+        "z": "b724a6a7.177628",
+        "name": "filter variable",
+        "rules": [
+            {
+                "t": "set",
+                "p": "payload",
+                "pt": "msg",
+                "to": "$number(payload)",
+                "tot": "jsonata"
+            }
+        ],
+        "action": "",
+        "property": "",
+        "from": "",
+        "to": "",
+        "reg": false,
+        "x": 970,
+        "y": 240,
+        "wires": [
+            [
+                "b5c6d9c6.47e198",
+                "d1eaeafb.723b88"
+            ]
+        ]
+    },
+    {
+        "id": "8aa305e1.f01038",
+        "type": "function",
+        "z": "b724a6a7.177628",
+        "name": "column_data",
+        "func": "newmsg = {};\nnewmsg.payload = msg.payload.data;\nreturn newmsg;",
+        "outputs": 1,
+        "noerr": 0,
+        "initialize": "",
+        "finalize": "",
+        "libs": [],
+        "x": 730,
+        "y": 240,
+        "wires": [
+            [
+                "2ba231c.e96a1ce"
+            ]
+        ]
+    },
+    {
+        "id": "1152e9d2.1992b6",
+        "type": "subflow:91d68244.047e7",
+        "z": "b724a6a7.177628",
+        "name": "Data3",
+        "env": [
+            {
+                "name": "varfilter",
+                "value": "trigData",
+                "type": "str"
+            }
+        ],
+        "x": 670,
+        "y": 780,
+        "wires": [
+            [
+                "a76ed275.b6203"
+            ]
+        ]
+    },
+    {
+        "id": "bbf1b1f5.ab6ee",
+        "type": "debug",
+        "z": "b724a6a7.177628",
+        "name": "",
+        "active": true,
+        "tosidebar": true,
+        "console": true,
+        "tostatus": false,
+        "complete": "payload",
+        "targetType": "msg",
+        "statusVal": "",
+        "statusType": "auto",
+        "x": 720,
+        "y": 880,
+        "wires": []
+    },
+    {
+        "id": "27854af4.d53d86",
+        "type": "debug",
+        "z": "b724a6a7.177628",
+        "d": true,
+        "name": "",
+        "active": true,
+        "tosidebar": true,
+        "console": true,
+        "tostatus": false,
+        "complete": "payload",
+        "targetType": "msg",
+        "statusVal": "",
+        "statusType": "auto",
+        "x": 760,
+        "y": 380,
+        "wires": []
+    },
+    {
+        "id": "a76ed275.b6203",
+        "type": "function",
+        "z": "b724a6a7.177628",
+        "name": "copy_payload",
+        "func": "newmsg = {};\nnewmsg.payload = msg.payload;\nreturn newmsg;",
+        "outputs": 1,
+        "noerr": 0,
+        "initialize": "",
+        "finalize": "",
+        "libs": [],
+        "x": 920,
+        "y": 700,
+        "wires": [
+            [
+                "3f392198.19ae2e"
+            ]
+        ]
+    },
+    {
+        "id": "b70ff341.369b9",
+        "type": "ui_group",
+        "name": "Advanced Flow",
+        "tab": "13c39b38.5758f5",
+        "order": 1,
+        "disp": true,
+        "width": "20",
+        "collapse": false
+    },
+    {
+        "id": "e27ff0225fd2c6a4",
+        "type": "probe",
+        "probeid": "066EFF373333484D43042153",
+        "probename": "ST-Link v2 066EFF373333484D43042153",
+        "protocol": "SWD",
+        "frequency": "1.8 MHz - Default",
+        "probeproperty": "{\"SWD\":[\"4.6 MHz\",\"1.8 MHz - Default\",\"950 kHz\",\"400 kHz\",\"150 kHz\"],\"JTAG\":[\"18 MHz\",\"9 MHz\",\"4.5 MHz\",\"2.25 MHz\",\"1.12 MHz - Default\",\"560 kHz\",\"280 kHz\",\"140 kHz\"]}",
+        "probeversion": "ST Link firmware version V2.J45",
+        "connectionType": "p2p",
+        "nickname": "DISCOF407"
+    },
+    {
+        "id": "d7972f68.a26fd",
+        "type": "exe-config",
+        "name": "TesteValues",
+        "exefile": "/Users/michaelalex/Documents/Udemy/DSP4STM32/DSP4STM32WkSpace/MonitorBase/Debug/MonitorBase.elf",
+        "exefolder": "/Users/michaelalex/Documents/Udemy/DSP4STM32/DSP4STM32WkSpace/MonitorBase/Debug",
+        "exevariablelist": [
+            {
+                "address": "0x080014cc",
+                "name": "AHBPrescTable[0]",
+                "type": 1
+            },
+            {
+                "address": "0x20000030",
+                "name": "dataIn",
+                "type": 9,
+                "checked": true
+            },
+            {
+                "address": "0x2000003c",
+                "name": "dataInArray[0]",
+                "type": 9
+            },
+            {
+                "address": "0x20000038",
+                "name": "dataOut",
+                "type": 9,
+                "checked": true
+            },
+            {
+                "address": "0x20001054",
+                "name": "dataOutArray[0]",
+                "type": 9
+            },
+            {
+                "address": "0x20000028",
+                "name": "sampleIn",
+                "type": 3,
+                "checked": true
+            },
+            {
+                "address": "0x2000002c",
+                "name": "sampleOld",
+                "type": 3
+            },
+            {
+                "address": "0x2000002a",
+                "name": "sampleOut",
+                "type": 3,
+                "checked": true
+            },
+            {
+                "address": "0x20000034",
+                "name": "state",
+                "type": 1
+            },
+            {
+                "address": "0x20000000",
+                "name": "SystemCoreClock",
+                "type": 5
+            },
+            {
+                "address": "0x20000035",
+                "name": "trigData",
+                "type": 1,
+                "checked": true
+            },
+            {
+                "address": "0x2000206c",
+                "name": "uwTick",
+                "type": 5
+            },
+            {
+                "address": "0x20000008",
+                "name": "uwTickFreq",
+                "type": 2
+            },
+            {
+                "address": "0x20000004",
+                "name": "uwTickPrio",
+                "type": 5
+            }
+        ],
+        "expand": false,
+        "filename": "MonitorBase.elf",
+        "exeModifiedTime": 1735863817039,
+        "configLastUpdate": 1735864628852
+    },
+    {
+        "id": "13c39b38.5758f5",
+        "type": "ui_tab",
+        "name": "Advanced",
+        "icon": "dashboard",
+        "disabled": false,
+        "hidden": false
+    }
+]
